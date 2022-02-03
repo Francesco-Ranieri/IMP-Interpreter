@@ -61,52 +61,68 @@ arrayExpEval s (ArrayExpVariable v) =
     Just (ArrayType a) -> Just a
     Nothing -> error "Variable to assign not found"
 
-exeCommands :: State -> [Command] -> State
-exeCommands s [] = s
-exeCommands s (Skip : cs) = exeCommands s cs
+executeCommands :: State -> [Command] -> State
+executeCommands s [] = s
+executeCommands s (Skip : cs) = executeCommands s cs
 
-exeCommands s ((AExpDeclaration v exp) : cs) =
+
+                                                -- START DECLARATION AREA --
+
+-- EXECUTE INTEGER DECLARATION --
+executeCommands s ((AExpDeclaration v exp) : cs) =
   case aExpEval s exp of
     Just ex' -> case get s v of
                   Just _ -> error "Variable already declared!"
-                  Nothing -> exeCommands (insert s v (IntegerType ex')) cs
+                  Nothing -> executeCommands (insert s v (IntegerType ex')) cs
     Nothing -> error "Invalid aExp"
 
-exeCommands s ((BExpDeclaration v exp) : cs) =
+
+-- EXECUTE BOOLEAN DECLARATION --
+executeCommands s ((BExpDeclaration v exp) : cs) =
   case bExpEval s exp of
     Just ex' -> case get s v of
                   Just _ -> error "Variable already declared!"
-                  Nothing -> exeCommands (insert s v (BooleanType ex')) cs
+                  Nothing -> executeCommands (insert s v (BooleanType ex')) cs
     Nothing -> error "Invalid bExp"
 
-exeCommands s ((ArrayDeclaration v exp) : cs) =
+
+-- EXECUTE ARRAY DECLARATION --
+executeCommands s ((ArrayDeclaration v exp) : cs) =
   case aExpEval s exp of
     Just ex' -> case get s v of
                   Just _ -> error "Variable already declared!"
-                  Nothing -> exeCommands (insert s v (ArrayType a)) cs
+                  Nothing -> executeCommands (insert s v (ArrayType a)) cs
                               where a = declare ex'
     Nothing -> error "Invalid size!"
 
-exeCommands s ((AExpAssignment v exp) : cs) =
+
+                                                -- START ASSIGMENT AREA --
+
+-- EXECUTE INTEGER ASSIGMENT --
+executeCommands s ((AExpAssignment v exp) : cs) =
   case get s v of
-    Just (IntegerType _) -> exeCommands (insert s v (IntegerType exp')) cs
+    Just (IntegerType _) -> executeCommands (insert s v (IntegerType exp')) cs
                               where Just exp' = aExpEval s exp
     Just (BooleanType _) -> error "Assignment of a bExp value to an aExp variable not allowed!"
     Just (ArrayType _) -> error "Assignment of an array value to an aExp variable not allowed!"
     Nothing -> error "Undeclared variable!"
 
-exeCommands s ((BExpAssignment v exp) : cs) =
+
+-- EXECUTE BOOLEAN ASSIGMENT --
+executeCommands s ((BExpAssignment v exp) : cs) =
   case get s v of
-    Just (BooleanType _) -> exeCommands (insert s v (BooleanType exp')) cs
+    Just (BooleanType _) -> executeCommands (insert s v (BooleanType exp')) cs
                               where Just exp' = bExpEval s exp
     Just (IntegerType _) -> error "Assignment of an aExp value to a bExp variable not allowed!"
     Just (ArrayType _) -> error "Assignment of an array value to an bExp variable not allowed!"
     Nothing -> error "Undeclared variable!"
 
-exeCommands s ((ArrayAssignmentSingleValue v i exp) : cs) =
+
+-- EXECUTE ARRAY ASSIGMENT SINGLE VALUE --
+executeCommands s ((ArrayAssignmentSingleValue v i exp) : cs) =
   case get s v of
     Just (ArrayType a) -> case aExpEval s exp of
-                            Just r -> exeCommands (insert s v (ArrayType exp')) cs
+                            Just r -> executeCommands (insert s v (ArrayType exp')) cs
                               where Just exp' = Array.write i' r a
                                                   where Just i' = aExpEval s i
                             Nothing -> error "The expression you want to assign is not valid!"
@@ -114,25 +130,31 @@ exeCommands s ((ArrayAssignmentSingleValue v i exp) : cs) =
     Just (BooleanType _) -> error "Assignment of an bExp value to an array variable not allowed!"
     Nothing -> error "Undeclared variable!"
 
-exeCommands s ((ArrayAssignmentValues v exp) : cs) =
+-- EXECUTE ARRAY ASSIGMENT MULTI VALUE --
+executeCommands s ((ArrayAssignmentValues v exp) : cs) =
   case get s v of
     Just (ArrayType a) -> case arrayExpEval s exp of
                             Just b -> if length a == length b 
-                                        then exeCommands (insert s v (ArrayType b)) cs
+                                        then executeCommands (insert s v (ArrayType b)) cs
                                         else error "Length not valid!"
                             Nothing -> error "One of the aExp evaluation of the array you want to assign failed"
     Just (IntegerType _) -> error "Assignment of an aExp value to an array variable not allowed!"
     Just (BooleanType _) -> error "Assignment of an bExp value to an array variable not allowed!"
     Nothing -> error "Undeclared variable!"
 
-exeCommands s ((IfThenElse b c c') : cs) =
+
+                                               -- START CONTROL CONSTRUCTS AREA --
+
+-- EXECUTE IfThenElse COMMAND --
+executeCommands s ((IfThenElse b c c') : cs) =
   case bExpEval s b of
-    Just True -> exeCommands s (c ++ cs)
-    Just False -> exeCommands s (c' ++ cs)
+    Just True -> executeCommands s (c ++ cs)
+    Just False -> executeCommands s (c' ++ cs)
     Nothing -> error "Invalid boolean expression!"
 
-exeCommands s ((While b c) : cs) =
+-- EXECUTE WHILE COMMAND --
+executeCommands s ((While b c) : cs) =
   case bExpEval s b of
-    Just True -> exeCommands s (c ++ [While b c] ++ cs)
-    Just False -> exeCommands s cs
+    Just True -> executeCommands s (c ++ [While b c] ++ cs)
+    Just False -> executeCommands s cs
     Nothing -> error "Invalid boolean expression!"

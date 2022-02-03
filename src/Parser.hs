@@ -355,8 +355,8 @@ programParser :: Parser [Command]
 programParser = do many commandParser
 
 --
-exeParser :: String -> ([Command], String)
-exeParser s = case result of
+executeParser :: String -> ([Command], String)
+executeParser s = case result of
                 Nothing -> error "Parsed not executed"
                 Just (cs, str) -> (cs, str)
               where (P p) = programParser

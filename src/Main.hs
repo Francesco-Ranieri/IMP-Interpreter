@@ -2,19 +2,68 @@ module Main where
     
 import Parser
 import Interpreter
+import Data.Char(toUpper)
+import Control.Monad
 
-main :: IO ()
+main :: IO()
 main = do
-  s <- readFile "source.txt"
-  let p = exeParser s
-  if snd p == ""
-    then do
-      let s = emptyState
-      let s' = exeCommands s (fst p)
-      print p
-      print s'
-    else do
-      print p
-      error "Parse failed"
-    
-  
+    printImpLogo
+    putStrLn "Chose one option to continue:"
+    choice <- getLine;
+    case choice of
+
+        "1" -> do
+            doWhileInsert
+            putStrLn "Interpreter terminated with code <-1>"
+
+        "2" -> do
+            putStrLn "Insert the path to the file you want to use!"
+            file_path <- getLine;
+            input <- readFile file_path
+            parserInput input
+
+
+--
+printImpLogo = do
+            putStrLn " _   __ _ _                   "
+            putStrLn "| | / /| (_)                  "
+            putStrLn "| |/ / | |_ _ __ ___  _ __    "
+            putStrLn "|    \\ | | | '_ ` _ \\| '_ \\   "
+            putStrLn "| |\\  \\| | | | | | | | |_) |  "
+            putStrLn "\\_| \\_/|_|_|_| |_| |_| .__/   "
+            putStrLn "                     | |      "
+            putStrLn "                     |_|F.R.      "
+            putStrLn "                              "
+            putStrLn "1) Use command Line parser "
+            putStrLn "2) Load file "
+            putStrLn "                              "
+
+--
+doWhileInsert = do
+            putStrLn "__________________________________"
+            putStrLn "Insert the program or ESC to exit"
+            input <- getLine;
+
+            unless (map toUpper input == "ESC") $ do
+            parserInput input
+            doWhileInsert
+
+
+--
+parserInput input = do
+                let inputParsed = executeParser input
+                if snd inputParsed == ""
+                then do
+                  let state = emptyState
+                  let state' = executeCommands state (fst inputParsed)
+                  putStrLn ""
+                  print inputParsed
+                  putStrLn ""
+                  print state'
+                  putStrLn ""
+                else do
+                  putStrLn ""
+                  print inputParsed
+                  putStrLn ""
+                  error "Parse failed"
+                  putStrLn ""
