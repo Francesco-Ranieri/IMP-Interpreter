@@ -68,27 +68,27 @@ sat p =
     if p x then return x else empty;
   }
 
--- checks if a character is a space or not
+-- Checks if a character is a space or not
 isSpace :: Char -> Bool
 isSpace c = c `elem` spaces
 
--- checks if a character is a digit or not
+-- Checks if a character is a digit or not
 isDigit :: Char -> Bool
 isDigit c = c `elem` digits
 
--- checks if a character is lowercase or not
+-- Checks if a character is lowercase or not
 isLowerCase :: Char -> Bool
 isLowerCase c = c `elem` lowercases
 
--- checks if a character is uppercase or not
+-- Checks if a character is uppercase or not
 isUpperCase :: Char -> Bool
 isUpperCase c = c `elem` uppercases
 
--- checks if a character is a letter or not
+-- Checks if a character is a letter or not
 isLetter :: Char -> Bool
 isLetter c = isUpperCase c || isLowerCase c
 
--- 
+--
 digitParser :: Parser Char
 digitParser = sat isDigit
 
@@ -104,12 +104,12 @@ upperParser = sat isUpperCase
 letterParser :: Parser Char
 letterParser = sat isLetter
 
--- parses whitespaces removing them
+-- Parses whitespaces removing them
 spaceParser :: Parser ()
 spaceParser = do many (sat isSpace)
                  return ()
 
--- parses a keyword by checking that every character read is equal to every character of the keyword given as input
+-- Parses a keyword by checking that every character read is equal to every character of the keyword given as input
 keyword :: String -> Parser String
 keyword [] = return []
 keyword (x:xs) = do sat (== x)
@@ -342,6 +342,33 @@ whileParser = do keywordParser "while"
                  keywordParser "}"
                  return (While b p)
 
+forParser :: Parser Command
+forParser = do keywordParser "for"
+               keywordParser "("
+               counter <- variableDeclParser
+               booleanExp <- bExpParser
+               keywordParser ";"
+               identifier <- identifierParser;
+               keywordParser "++";
+               keywordParser ")"
+               keywordParser "{"
+               body <- programParser
+               keywordParser "}"
+               return (ForIncrement counter booleanExp identifier body)
+               <|>
+               do keywordParser "for"
+                  keywordParser "("
+                  counter <- variableDeclParser
+                  booleanExp <- bExpParser
+                  keywordParser ";"
+                  identifier <- identifierParser;
+                  keywordParser "--";
+                  keywordParser ")"
+                  keywordParser "{"
+                  body <- programParser
+                  keywordParser "}"
+                  return (ForDecrement counter booleanExp identifier body)
+
 --
 commandParser :: Parser Command
 commandParser = variableDeclParser
@@ -349,6 +376,7 @@ commandParser = variableDeclParser
                 <|> assignmentParser
                 <|> ifThenElseParser
                 <|> whileParser
+                <|> forParser
 
 --
 programParser :: Parser [Command]

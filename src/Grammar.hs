@@ -80,6 +80,10 @@ data Command
     | IfThenElse BExp [Command] [Command]
     --
     | While BExp [Command]
+    --
+    | ForIncrement Command BExp String [Command]
+    --
+    | ForDecrement Command BExp String [Command]
     deriving Show
 
 -- Program declaration

@@ -1,6 +1,6 @@
 module Interpreter where
 
-import Dictionary (Dictionary, empty, get, insert)
+import Dictionary (Dictionary, empty, get, insert, delete)
 import Grammar ( Command(..), BExp(..), AExp(..), Type(..), ArrayExp(..))
 import Array (Array,declare, read, write)
 
@@ -103,7 +103,7 @@ executeCommands s ((AExpAssignment v exp) : cs) =
   case get s v of
     Just (IntegerType _) -> executeCommands (insert s v (IntegerType exp')) cs
                               where Just exp' = aExpEval s exp
-    Just (BooleanType _) -> error "Assignment of a bExp value to an aExp variable not allowed!"
+    Just (BooleanType _) -> error "Assignment of a boolean value to an aExp variable not allowed!"
     Just (ArrayType _) -> error "Assignment of an array value to an aExp variable not allowed!"
     Nothing -> error "Undeclared variable!"
 
@@ -113,7 +113,7 @@ executeCommands s ((BExpAssignment v exp) : cs) =
   case get s v of
     Just (BooleanType _) -> executeCommands (insert s v (BooleanType exp')) cs
                               where Just exp' = bExpEval s exp
-    Just (IntegerType _) -> error "Assignment of an aExp value to a bExp variable not allowed!"
+    Just (IntegerType _) -> error "Assignment of an integer value to a bExp variable not allowed!"
     Just (ArrayType _) -> error "Assignment of an array value to an bExp variable not allowed!"
     Nothing -> error "Undeclared variable!"
 
@@ -126,8 +126,8 @@ executeCommands s ((ArrayAssignmentSingleValue v i exp) : cs) =
                               where Just exp' = Array.write i' r a
                                                   where Just i' = aExpEval s i
                             Nothing -> error "The expression you want to assign is not valid!"
-    Just (IntegerType _) -> error "Assignment of an aExp value to an array variable not allowed!"
-    Just (BooleanType _) -> error "Assignment of an bExp value to an array variable not allowed!"
+    Just (IntegerType _) -> error "Assignment of an integer value to an array variable not allowed!"
+    Just (BooleanType _) -> error "Assignment of an boolean value to an array variable not allowed!"
     Nothing -> error "Undeclared variable!"
 
 -- EXECUTE ARRAY ASSIGMENT MULTI VALUE --
@@ -158,3 +158,15 @@ executeCommands s ((While b c) : cs) =
     Just True -> executeCommands s (c ++ [While b c] ++ cs)
     Just False -> executeCommands s cs
     Nothing -> error "Invalid boolean expression!"
+
+-- EXECUTE FOR WITH INCREMENT COMMAND --
+executeCommands s ((ForIncrement counter booleanExp identifier body) : cs) =
+  let c = body ++ [AExpAssignment identifier (Add (AExpVariable identifier) (AExpConstant 1))]
+  in
+    executeCommands s ([counter] ++ [(While booleanExp c)] ++ cs)
+
+-- EXECUTE FOR WITH DECREMENT COMMAND --
+executeCommands s ((ForDecrement counter booleanExp identifier body) : cs) =
+  let c = body ++ [AExpAssignment identifier (Sub (AExpVariable identifier) (AExpConstant 1))]
+  in
+    executeCommands s ([counter] ++ [(While booleanExp c)] ++ cs)

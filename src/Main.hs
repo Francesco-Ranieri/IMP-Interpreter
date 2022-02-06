@@ -2,6 +2,7 @@ module Main where
     
 import Parser
 import Interpreter
+
 import Data.Char(toUpper)
 import Control.Monad
 
@@ -23,7 +24,7 @@ main = do
             parserInput input
 
 
---
+printImpLogo :: IO()
 printImpLogo = do
             putStrLn " _   __ _ _                   "
             putStrLn "| | / /| (_)                  "
@@ -39,6 +40,7 @@ printImpLogo = do
             putStrLn "                              "
 
 --
+doWhileInsert :: IO()
 doWhileInsert = do
             putStrLn "__________________________________"
             putStrLn "Insert the program or ESC to exit"
@@ -50,17 +52,34 @@ doWhileInsert = do
 
 
 --
+parserInput :: String -> IO()
 parserInput input = do
                 let inputParsed = executeParser input
                 if snd inputParsed == ""
                 then do
                   let state = emptyState
                   let state' = executeCommands state (fst inputParsed)
+
+                  --
                   putStrLn ""
-                  print inputParsed
+                  putStrLn " -- INPUT PARSED -- "
+                  putStrLn ""
+                  let parsed = fst inputParsed
+                  mapM_ print parsed
+
+                  --
+                  putStrLn ""
+                  putStrLn " -- INPUT NOTPARSED -- "
+                  putStrLn ""
+                  let notParsed = snd inputParsed
+                  mapM_ print notParsed
+                  --
+                  putStrLn ""
+                  putStrLn " -- STATE -- "
                   putStrLn ""
                   print state'
                   putStrLn ""
+
                 else do
                   putStrLn ""
                   print inputParsed

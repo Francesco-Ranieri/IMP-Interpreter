@@ -1,0 +1,14 @@
+int b = 0;
+int numIter = 0;
+for (int i = 0; i<6; i++){
+    b = b + i * 2;
+    numIter = numIter + 1;
+}
+
+int d = 0;
+int numIter2 = 0;
+
+for (int y = 5; y>=0; y--){
+    d = d + y * 2;
+    numIter2 = numIter2 + 1;
+}
