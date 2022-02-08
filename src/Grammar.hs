@@ -11,6 +11,8 @@ data Type
     | ArrayType (Array Int)
     --
     | SetType (Array Int)
+    --
+    | StackType (Array Int)
     deriving Show
 
 data AExp
@@ -67,20 +69,29 @@ data SetExp
     | SetExpVariable String
     deriving Show
 
+data StackExp
+    --  x = [1,2,3]
+    = StackValues [AExp]
+    -- x = y       y = [1,2,3]
+    | StackExpVariable String
+    deriving Show
+
 -- Command declaration
 data Command
     --
     = AExpDeclaration String AExp
     --
     | BExpDeclaration String BExp
-    --
+    -- Array
     | ArrayDeclaration String AExp
     --
     | ArrayFullDeclaration String ArrayExp
-    --
+    -- Set
     | SetDeclaration String
     --
     | SetFullDeclaration String SetExp
+    -- Stack
+    | StackDeclaration String
     --
     | Skip
     --
@@ -95,6 +106,10 @@ data Command
     | SetAssignmentSingleValue String AExp
     --
     | SetAssignmentValues String SetExp
+    --
+    | StackPushValue String AExp
+    --
+    | StackPopValue String
     --
     | IfThenElse BExp [Command] [Command]
     --

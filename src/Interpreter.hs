@@ -1,9 +1,10 @@
 module Interpreter where
 
 import Dictionary (Dictionary, empty, get, insert, delete)
-import Grammar ( Command(..), BExp(..), AExp(..), Type(..), ArrayExp(..), SetExp(..))
+import Grammar ( Command(..), BExp(..), AExp(..), Type(..), ArrayExp(..), SetExp(..), StackExp(..))
 import Array (Array,declare, read, write)
 import Set (Set,declareSet, readSet, insertSet, arrayToSet, fullDeclareSet)
+import Stack(Stack, declareStack, pushValue, popValue)
 
 type State = Dictionary String Type
 
@@ -89,6 +90,26 @@ setExpEval s (SetExpVariable v) =
     Just (SetType b) -> Just b
     Nothing -> error "Variable to assign not found"
 
+
+-- STACK EVAL
+stackExpEval :: State -> StackExp -> Maybe (Stack Int)
+stackExpEval s (StackValues a) = if hasFailed
+                                    then Nothing
+                                    else Just $ map (\v -> case v of Just x -> x) r
+                                      where hasFailed = or $ map (\v -> case v of
+                                              Nothing -> True
+                                              Just x -> False) r
+                                            r = map (\exp -> aExpEval s exp) a
+
+
+stackExpEval s (StackExpVariable v) =
+  case get s v of
+    Just (ArrayType a) -> Just (Set.fullDeclareSet a)
+    Just (SetType b) -> Just b
+    Just _ -> error "Assignment not allowed!"
+    Nothing -> error "Variable to assign not found"
+
+
 executeCommands :: State -> [Command] -> State
 executeCommands s [] = s
 executeCommands s (Skip : cs) = executeCommands s cs
@@ -145,6 +166,15 @@ executeCommands s ((SetFullDeclaration v exp) : cs) =
                     Just b -> executeCommands (insert s v (SetType c)) cs
                         where
                          c = Set.arrayToSet b
+
+-- EXECUTE STACK DECLARATION
+
+executeCommands s ((StackDeclaration i) : cs) =
+    case get s i of
+        Just _ -> error "Variable already declared!"
+        Nothing -> executeCommands (insert s i (StackType emptyStack)) cs
+                    where
+                     emptyStack = Stack.declareStack
 
                                                 -- START ASSIGMENT AREA --
 
@@ -209,9 +239,7 @@ executeCommands s ((SetAssignmentSingleValue set exp) : cs) =
                             Just r -> executeCommands (insert s set (SetType exp1)) cs
                               where exp1 = Set.insertSet r a
                             Nothing -> error "The expression you want to assign is not valid!"
-    Just (ArrayType _) -> error "Cannot Add to an array variable!"
-    Just (IntegerType _) -> error "Cannot Add to an integer variable!"
-    Just (BooleanType _) -> error "Cannot Add to a boolean variable!"
+    Just _ -> error "Cannot Add!"
     Nothing -> error "Undeclared variable!"
 
 
@@ -228,10 +256,29 @@ executeCommands s ((SetAssignmentValues v exp) : cs) =
                                 where
                                  c = Set.arrayToSet b
                             Nothing -> error "The expression you want to assign is not valid!"
-    Just (IntegerType _) -> error "Assignment of an aExp value to an array variable not allowed!"
-    Just (BooleanType _) -> error "Assignment of an bExp value to an array variable not allowed!"
+    Just _ -> error "Assignment not allowed!"
     Nothing -> error "Undeclared variable!"
 
+                                                          -- STACK --
+
+executeCommands s ((StackPushValue v exp) : cs) =
+  case get s v of
+    Just (StackType a) -> case aExpEval s exp of
+                              Just b -> executeCommands (insert s v (StackType c)) cs
+                                where
+                                 c = Stack.pushValue a b
+                              Nothing -> error "The expression you want to assign is not valid!"
+    Just _ -> error "Assignment not allowed!"
+    Nothing -> error "Undeclared variable!"
+
+
+executeCommands s ((StackPopValue v) : cs) =
+  case get s v of
+    Just (StackType a) -> executeCommands (insert s v (StackType c)) cs
+                            where
+                             c = Stack.popValue a
+    Just _ -> error "Assignment not allowed!"
+    Nothing -> error "Undeclared variable!"
                                                -- START CONTROL CONSTRUCTS AREA --
 
 -- EXECUTE IfThenElse COMMAND --

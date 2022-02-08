@@ -1,6 +1,7 @@
 module Parser where
 
 import Grammar ( AExp(..), BExp(..), Command(..), ArrayExp(..), SetExp(..))
+import Control.Monad
 
 newtype Parser a = P (String -> Maybe (a, String))
 
@@ -303,6 +304,12 @@ variableDeclParser = do {
        keywordParser "}";
        keywordParser ";";
        return (SetFullDeclaration i (SetValues (i':i'')))
+       }
+   <|> do {
+       keywordParser "stack";
+       i <- identifierParser;
+       keywordParser ";";
+       return (StackDeclaration i )
    }
 
 
@@ -374,8 +381,17 @@ assignmentParser = do i <- identifierParser
                           x <- identifierParser
                           keywordParser ";"
                           return (SetAssignmentValues i (SetExpVariable x))
-
---                    
+                                            -- STACK
+                       <|>
+                       do keywordParser "push"
+                          x <- aExpParser
+                          keywordParser ";"
+                          return (StackPushValue i x)
+                       <|>
+                       do keywordParser "pop"
+                          keywordParser ";"
+                          return (StackPopValue i)
+--
 ifThenElseParser :: Parser Command
 ifThenElseParser = do keywordParser "if"
                       keywordParser "("
@@ -431,6 +447,24 @@ forParser = do keywordParser "for"
                   keywordParser "}"
                   return (ForDecrement counter booleanExp identifier body)
 
+
+commentParser :: Parser Command
+commentParser = do keywordParser "{-"
+                   whileCommand1
+
+whileCommand1 = do
+                   whileCommand
+                   do keywordParser "}"
+                      return Skip;
+                   <|>
+                   do next' <- readNext
+                      whileCommand1
+whileCommand = do
+                   next' <- readNext
+                   unless (next' == '-') $ do
+                   whileCommand
+
+
 --
 commandParser :: Parser Command
 commandParser = variableDeclParser
@@ -439,6 +473,7 @@ commandParser = variableDeclParser
                 <|> ifThenElseParser
                 <|> whileParser
                 <|> forParser
+                <|> commentParser
 
 --
 programParser :: Parser [Command]
