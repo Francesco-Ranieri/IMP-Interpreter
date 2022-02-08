@@ -1,8 +1,9 @@
 module Interpreter where
 
 import Dictionary (Dictionary, empty, get, insert, delete)
-import Grammar ( Command(..), BExp(..), AExp(..), Type(..), ArrayExp(..))
+import Grammar ( Command(..), BExp(..), AExp(..), Type(..), ArrayExp(..), SetExp(..))
 import Array (Array,declare, read, write)
+import Set (Set,declareSet, readSet, insertSet, arrayToSet, fullDeclareSet)
 
 type State = Dictionary String Type
 
@@ -16,11 +17,13 @@ aExpEval s (AExpVariable v) =
     Just (IntegerType r) -> Just r 
     Just (BooleanType _) -> error "Variable of type boolean!"
     Just (ArrayType _) -> error "Variable of type array!"
+    Just (SetType _) -> error "Variable of type set!"
     Nothing -> error "Variable not found!"
 aExpEval s (ValueFromArray v i) =
   case get s v of
     Just (IntegerType _) -> error "Variable of type integer!"
     Just (BooleanType _) -> error "Variable of type boolean!"
+    Just (SetType _) -> error "Variable of type set!"
     Just (ArrayType r) -> Array.read i' r
                             where Just i' = aExpEval s i
     Nothing -> error "Variable not found!"
@@ -35,6 +38,7 @@ bExpEval s (BExpVariable v) =
     Just (IntegerType _) -> error "Variable of type integer!"
     Just (BooleanType r) -> Just r
     Just (ArrayType _) -> error "Variable of type array!"
+    Just (SetType _) -> error "Variable of type set!"
     Nothing -> error "Variable not found"
 bExpEval s (Not b) = not <$> bExpEval s b
 bExpEval s (Or a b) = (||) <$> bExpEval s a <*> bExpEval s b
@@ -46,6 +50,7 @@ bExpEval s (GreaterEqual a b) = (>=) <$> aExpEval s a <*> aExpEval s b
 bExpEval s (Equal a b) = (==) <$> aExpEval s a <*> aExpEval s b
 bExpEval s (NotEqual a b) = (/=) <$> aExpEval s a <*> aExpEval s b
 
+-- ARRAY EVAL
 arrayExpEval :: State -> ArrayExp -> Maybe (Array Int)
 arrayExpEval s (ArrayValues a) = if hasFailed 
                                     then Nothing
@@ -54,11 +59,34 @@ arrayExpEval s (ArrayValues a) = if hasFailed
                                               Nothing -> True
                                               Just x -> False) r
                                             r = map (\exp -> aExpEval s exp) a
+
+
 arrayExpEval s (ArrayExpVariable v) = 
   case get s v of
     Just (IntegerType _) -> error "Assignment of an integer value to an array one not allowed!"
     Just (BooleanType _) -> error "Assignment of an boolean value to an array one not allowed!"
+    Just (SetType _) -> error "Assignment of a set value to an array one not allowed!"
     Just (ArrayType a) -> Just a
+    Nothing -> error "Variable to assign not found"
+
+
+--SET EVAL
+setExpEval :: State -> SetExp -> Maybe (Set Int)
+setExpEval s (SetValues a) = if hasFailed
+                                    then Nothing
+                                    else Just $ map (\v -> case v of Just x -> x) r
+                                      where hasFailed = or $ map (\v -> case v of
+                                              Nothing -> True
+                                              Just x -> False) r
+                                            r = map (\exp -> aExpEval s exp) a
+
+
+setExpEval s (SetExpVariable v) =
+  case get s v of
+    Just (IntegerType _) -> error "Assignment of an integer value to a set one not allowed!"
+    Just (BooleanType _) -> error "Assignment of an boolean value to a set one not allowed!"
+    Just (ArrayType a) -> Just (Set.fullDeclareSet a)
+    Just (SetType b) -> Just b
     Nothing -> error "Variable to assign not found"
 
 executeCommands :: State -> [Command] -> State
@@ -96,6 +124,28 @@ executeCommands s ((ArrayDeclaration v exp) : cs) =
     Nothing -> error "Invalid size!"
 
 
+executeCommands s ((ArrayFullDeclaration v exp) : cs) =
+    case get s v of
+     Just _ -> error "Variable already declared!"
+     Nothing -> case arrayExpEval s exp of
+                    Just b -> executeCommands (insert s v (ArrayType b)) cs
+
+
+-- EXECUTE SET DECLARATION --
+executeCommands s ((SetDeclaration v) : cs) =
+    case get s v of
+      Just _ -> error "Variable already declared!"
+      Nothing -> executeCommands (insert s v (SetType []) ) cs
+
+
+executeCommands s ((SetFullDeclaration v exp) : cs) =
+    case get s v of
+     Just _ -> error "Variable already declared!"
+     Nothing -> case setExpEval s exp of
+                    Just b -> executeCommands (insert s v (SetType c)) cs
+                        where
+                         c = Set.arrayToSet b
+
                                                 -- START ASSIGMENT AREA --
 
 -- EXECUTE INTEGER ASSIGMENT --
@@ -105,6 +155,7 @@ executeCommands s ((AExpAssignment v exp) : cs) =
                               where Just exp' = aExpEval s exp
     Just (BooleanType _) -> error "Assignment of a boolean value to an aExp variable not allowed!"
     Just (ArrayType _) -> error "Assignment of an array value to an aExp variable not allowed!"
+    Just (SetType _) -> error "Assignment of a set value to an aExp variable not allowed!"
     Nothing -> error "Undeclared variable!"
 
 
@@ -115,6 +166,7 @@ executeCommands s ((BExpAssignment v exp) : cs) =
                               where Just exp' = bExpEval s exp
     Just (IntegerType _) -> error "Assignment of an integer value to a bExp variable not allowed!"
     Just (ArrayType _) -> error "Assignment of an array value to an bExp variable not allowed!"
+    Just (SetType _) -> error "Assignment of a set value to an bExp variable not allowed!"
     Nothing -> error "Undeclared variable!"
 
 
@@ -126,9 +178,11 @@ executeCommands s ((ArrayAssignmentSingleValue v i exp) : cs) =
                               where Just exp' = Array.write i' r a
                                                   where Just i' = aExpEval s i
                             Nothing -> error "The expression you want to assign is not valid!"
+    Just (SetType a) -> error "Cannot access a specific position of a set!"
     Just (IntegerType _) -> error "Assignment of an integer value to an array variable not allowed!"
     Just (BooleanType _) -> error "Assignment of an boolean value to an array variable not allowed!"
     Nothing -> error "Undeclared variable!"
+
 
 -- EXECUTE ARRAY ASSIGMENT MULTI VALUE --
 executeCommands s ((ArrayAssignmentValues v exp) : cs) =
@@ -138,10 +192,45 @@ executeCommands s ((ArrayAssignmentValues v exp) : cs) =
                                         then executeCommands (insert s v (ArrayType b)) cs
                                         else error "Length not valid!"
                             Nothing -> error "One of the aExp evaluation of the array you want to assign failed"
+    Just (SetType _) -> case arrayExpEval s exp of
+                            Just b -> executeCommands (insert s v (SetType c)) cs
+                                where
+                                 c = Set.arrayToSet b
+                            Nothing -> error "One of the aExp evaluation of the array you want to assign failed"
     Just (IntegerType _) -> error "Assignment of an aExp value to an array variable not allowed!"
     Just (BooleanType _) -> error "Assignment of an bExp value to an array variable not allowed!"
     Nothing -> error "Undeclared variable!"
 
+
+-- EXECUTE SET ASSIGMENT SINGLE VALUE --
+executeCommands s ((SetAssignmentSingleValue set exp) : cs) =
+  case get s set of
+    Just (SetType a) -> case aExpEval s exp of
+                            Just r -> executeCommands (insert s set (SetType exp1)) cs
+                              where exp1 = Set.insertSet r a
+                            Nothing -> error "The expression you want to assign is not valid!"
+    Just (ArrayType _) -> error "Cannot Add to an array variable!"
+    Just (IntegerType _) -> error "Cannot Add to an integer variable!"
+    Just (BooleanType _) -> error "Cannot Add to a boolean variable!"
+    Nothing -> error "Undeclared variable!"
+
+
+-- EXECUTE SET ASSIGMENT MULTI VALUE --
+executeCommands s ((SetAssignmentValues v exp) : cs) =
+  case get s v of
+    Just (SetType a) -> case setExpEval s exp of
+                            Just b -> executeCommands (insert s v (SetType c)) cs
+                                where
+                                 c = Set.arrayToSet b
+                            Nothing -> error "The expression you want to assign is not valid!"
+    Just (ArrayType a) -> case setExpEval s exp of
+                            Just b -> executeCommands (insert s v (ArrayType c)) cs
+                                where
+                                 c = Set.arrayToSet b
+                            Nothing -> error "The expression you want to assign is not valid!"
+    Just (IntegerType _) -> error "Assignment of an aExp value to an array variable not allowed!"
+    Just (BooleanType _) -> error "Assignment of an bExp value to an array variable not allowed!"
+    Nothing -> error "Undeclared variable!"
 
                                                -- START CONTROL CONSTRUCTS AREA --
 
@@ -152,6 +241,7 @@ executeCommands s ((IfThenElse b c c') : cs) =
     Just False -> executeCommands s (c' ++ cs)
     Nothing -> error "Invalid boolean expression!"
 
+
 -- EXECUTE WHILE COMMAND --
 executeCommands s ((While b c) : cs) =
   case bExpEval s b of
@@ -159,11 +249,13 @@ executeCommands s ((While b c) : cs) =
     Just False -> executeCommands s cs
     Nothing -> error "Invalid boolean expression!"
 
+
 -- EXECUTE FOR WITH INCREMENT COMMAND --
 executeCommands s ((ForIncrement counter booleanExp identifier body) : cs) =
   let c = body ++ [AExpAssignment identifier (Add (AExpVariable identifier) (AExpConstant 1))]
   in
     executeCommands s ([counter] ++ [(While booleanExp c)] ++ cs)
+
 
 -- EXECUTE FOR WITH DECREMENT COMMAND --
 executeCommands s ((ForDecrement counter booleanExp identifier body) : cs) =

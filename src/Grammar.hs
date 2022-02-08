@@ -9,6 +9,8 @@ data Type
     | BooleanType Bool
     --
     | ArrayType (Array Int)
+    --
+    | SetType (Array Int)
     deriving Show
 
 data AExp
@@ -52,10 +54,17 @@ data BExp
     deriving Show
 
 data ArrayExp
-    --  x = [1,2,3]
+    --  x = [1,2,3,3]
     = ArrayValues [AExp]
-    -- x = y       y = [1,2,3]
+    -- x = y       y = [1,2,3,3]
     | ArrayExpVariable String
+    deriving Show
+
+data SetExp
+    --  x = [1,2,3]
+    = SetValues [AExp]
+    -- x = y       y = [1,2,3]
+    | SetExpVariable String
     deriving Show
 
 -- Command declaration
@@ -67,6 +76,12 @@ data Command
     --
     | ArrayDeclaration String AExp
     --
+    | ArrayFullDeclaration String ArrayExp
+    --
+    | SetDeclaration String
+    --
+    | SetFullDeclaration String SetExp
+    --
     | Skip
     --
     | AExpAssignment String AExp
@@ -76,6 +91,10 @@ data Command
     | ArrayAssignmentSingleValue String AExp AExp
     --
     | ArrayAssignmentValues String ArrayExp
+    --
+    | SetAssignmentSingleValue String AExp
+    --
+    | SetAssignmentValues String SetExp
     --
     | IfThenElse BExp [Command] [Command]
     --

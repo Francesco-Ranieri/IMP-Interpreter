@@ -1,6 +1,6 @@
 module Parser where
 
-import Grammar ( AExp(..), BExp(..), Command(..), ArrayExp(..))
+import Grammar ( AExp(..), BExp(..), Command(..), ArrayExp(..), SetExp(..))
 
 newtype Parser a = P (String -> Maybe (a, String))
 
@@ -256,22 +256,55 @@ variableDeclParser = do {
    a <- aExpParser;
    keywordParser ";";
    return (AExpDeclaration i a)
-   } <|> do {
-   keywordParser "bool";
-   i <- identifierParser;
-   keywordParser "<-";
-   b <- bExpParser;
-   keywordParser ";";
-   return (BExpDeclaration i b)
-   } <|> do {
-   keywordParser "array";
-   i <- identifierParser;
-   keywordParser "[";
-   n <- aExpParser;
-   keywordParser "]";
-   keywordParser ";";
-   return (ArrayDeclaration i n)
    }
+   <|> do {
+       keywordParser "bool";
+       i <- identifierParser;
+       keywordParser "<-";
+       b <- bExpParser;
+       keywordParser ";";
+       return (BExpDeclaration i b)
+   }
+   <|> do {
+       keywordParser "array";
+       i <- identifierParser;
+       keywordParser "[";
+       n <- aExpParser;
+       keywordParser "]";
+       keywordParser ";";
+       return (ArrayDeclaration i n)
+   }
+   <|> do {
+       keywordParser "array";
+       i <- identifierParser;
+       keywordParser "=";
+       keywordParser "[";
+       i' <- aExpParser;
+       i'' <- many (do keywordParser ","; aExpParser);
+       keywordParser "]";
+       keywordParser ";";
+       return (ArrayFullDeclaration i (ArrayValues (i':i'')))
+    }
+   <|> do {
+       keywordParser "set";
+       i <- identifierParser;
+       keywordParser "{";
+       keywordParser "}";
+       keywordParser ";";
+       return (SetDeclaration i)
+    }
+   <|> do {
+       keywordParser "set";
+       i <- identifierParser;
+       keywordParser "=";
+       keywordParser "{";
+       i' <- aExpParser;
+       i'' <- many (do keywordParser ","; aExpParser);
+       keywordParser "}";
+       keywordParser ";";
+       return (SetFullDeclaration i (SetValues (i':i'')))
+   }
+
 
 --
 skipParser :: Parser Command
@@ -282,16 +315,20 @@ skipParser = do keywordParser "skip"
 --
 assignmentParser :: Parser Command
 assignmentParser = do i <- identifierParser
+                                            -- ARITHMETIC EXPRESSION
                       do keywordParser "="
                          a <- aExpParser
                          keywordParser ";"
                          return (AExpAssignment i a)
                        <|>
+                                            -- BOOL
                        do keywordParser "<-"
                           b <- bExpParser
                           keywordParser ";"
                           return (BExpAssignment i b)
-                       <|> 
+                       <|>
+                                            -- ARRAY
+                       -- a[0] = 1;
                        do keywordParser "["
                           i' <- aExpParser
                           keywordParser "]"
@@ -300,6 +337,7 @@ assignmentParser = do i <- identifierParser
                           keywordParser ";"
                           return (ArrayAssignmentSingleValue i i' a)
                        <|>
+                       -- a:= [1,2,3];
                        do keywordParser ":="
                           keywordParser "["
                           i' <- aExpParser
@@ -308,10 +346,34 @@ assignmentParser = do i <- identifierParser
                           keywordParser ";"
                           return (ArrayAssignmentValues i (ArrayValues (i':i'')))
                        <|>
+                       -- a := b where a,b -> array
                        do keywordParser ":="
                           x <- identifierParser
                           keywordParser ";"
                           return (ArrayAssignmentValues i (ArrayExpVariable x))
+                       <|>
+                                            -- SET
+                       -- a add 1
+                       do keywordParser "add"
+                          a <- aExpParser
+                          keywordParser ";"
+                          return (SetAssignmentSingleValue i a)
+                       <|>
+                       -- a := {1,2,3}
+                       do keywordParser ":="
+                          keywordParser "{"
+                          i' <- aExpParser
+                          i'' <- many (do keywordParser ","; aExpParser)
+                          keywordParser "}"
+                          keywordParser ";"
+                          return (SetAssignmentValues i (SetValues (i':i'')))
+                       <|>
+
+                       -- a := (set) b
+                       do keywordParser ":= (set)"
+                          x <- identifierParser
+                          keywordParser ";"
+                          return (SetAssignmentValues i (SetExpVariable x))
 
 --                    
 ifThenElseParser :: Parser Command
