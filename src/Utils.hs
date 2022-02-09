@@ -22,4 +22,8 @@ unique (x:xs)
 
 isEmpty :: [Int] -> Bool
 isEmpty [] = True
-isEmpty stack = False
+isEmpty struct = False
+
+len :: [Int] -> Int
+len [] = 0
+len struct = length struct

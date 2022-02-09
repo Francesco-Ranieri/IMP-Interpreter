@@ -5,7 +5,7 @@ import Grammar ( Command(..), BExp(..), AExp(..), Type(..), ArrayExp(..), SetExp
 import Array (Array,declare, read, write)
 import Set (Set,declareSet, readSet, insertSet, arrayToSet, fullDeclareSet)
 import Stack(Stack, declareStack, pushValue, popValue)
-import Utils(isEmpty)
+import Utils(isEmpty, len)
 
 type State = Dictionary String Type
 
@@ -32,6 +32,13 @@ aExpEval s (ValueFromArray v i) =
 aExpEval s (Add a b) = (+) <$> aExpEval s a <*> aExpEval s b
 aExpEval s (Sub a b) = (-) <$> aExpEval s a <*> aExpEval s b
 aExpEval s (Mul a b) = (*) <$> aExpEval s a <*> aExpEval s b
+aExpEval s (Length i) =
+    case get s i of
+        Just (ArrayType a) -> Just (Utils.len a)
+        Just (SetType a) -> Just (Utils.len a)
+        Just (StackType a) -> Just (Utils.len a)
+        Just _ -> error "Function LEN not defined for this type of variable!"
+        Nothing -> error "Variable not found"
 
 bExpEval :: State -> BExp -> Maybe Bool
 bExpEval _ (BExpConstant b) = Just b

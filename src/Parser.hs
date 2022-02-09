@@ -174,6 +174,10 @@ aTermParser = do chain aFactParser op
 --
 aFactParser :: Parser AExp
 aFactParser = (do a <- integerNumberParser; return (AExpConstant a))
+                <|> do
+                       keywordParser "len"
+                       a <- identifierParser
+                       return (Length a)
                 <|> do 
                    a <- identifierParser
                    do 

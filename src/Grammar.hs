@@ -28,6 +28,8 @@ data AExp
     | Sub AExp AExp
     -- Multiplication between sub-expressions
     | Mul AExp AExp
+    --
+    | Length String
     deriving Show
 
 data BExp
