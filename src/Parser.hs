@@ -218,6 +218,10 @@ bFactParser = do keywordParser "True"
                  keywordParser ")"
                  return b
               <|>
+              do keywordParser "empty"
+                 i <- identifierParser
+                 return (IsEmpty i)
+              <|>
               do {
                  a1 <- aExpParser;
                  do keywordParser "<"
@@ -375,7 +379,6 @@ assignmentParser = do i <- identifierParser
                           keywordParser ";"
                           return (SetAssignmentValues i (SetValues (i':i'')))
                        <|>
-
                        -- a := (set) b
                        do keywordParser ":= (set)"
                           x <- identifierParser

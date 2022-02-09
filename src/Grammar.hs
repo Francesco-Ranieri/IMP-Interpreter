@@ -53,6 +53,8 @@ data BExp
     | Equal AExp AExp
     -- != binary operator between arithmetical expressions
     | NotEqual AExp AExp
+    -- is_empty operator --> True is structure is empty
+    | IsEmpty String
     deriving Show
 
 data ArrayExp

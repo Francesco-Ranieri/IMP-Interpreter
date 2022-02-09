@@ -1,0 +1,12 @@
+{- this is a comment and it is parsed as Skip -}
+stack a;
+stack b; {-empty stack-}
+a push 3;
+a push 2;
+a push 1;
+
+a pop;
+
+if(empty b){
+    b push 100;
+}

@@ -20,4 +20,6 @@ unique (x:xs)
   | contain xs x  = unique xs
   | otherwise = x : unique xs
 
- 
+isEmpty :: [Int] -> Bool
+isEmpty [] = True
+isEmpty stack = False

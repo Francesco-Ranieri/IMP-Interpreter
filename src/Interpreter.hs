@@ -5,6 +5,7 @@ import Grammar ( Command(..), BExp(..), AExp(..), Type(..), ArrayExp(..), SetExp
 import Array (Array,declare, read, write)
 import Set (Set,declareSet, readSet, insertSet, arrayToSet, fullDeclareSet)
 import Stack(Stack, declareStack, pushValue, popValue)
+import Utils(isEmpty)
 
 type State = Dictionary String Type
 
@@ -40,6 +41,7 @@ bExpEval s (BExpVariable v) =
     Just (BooleanType r) -> Just r
     Just (ArrayType _) -> error "Variable of type array!"
     Just (SetType _) -> error "Variable of type set!"
+    Just (StackType _) -> error "Variable of type stack!"
     Nothing -> error "Variable not found"
 bExpEval s (Not b) = not <$> bExpEval s b
 bExpEval s (Or a b) = (||) <$> bExpEval s a <*> bExpEval s b
@@ -50,6 +52,13 @@ bExpEval s (Greater a b) = (>) <$> aExpEval s a <*> aExpEval s b
 bExpEval s (GreaterEqual a b) = (>=) <$> aExpEval s a <*> aExpEval s b
 bExpEval s (Equal a b) = (==) <$> aExpEval s a <*> aExpEval s b
 bExpEval s (NotEqual a b) = (/=) <$> aExpEval s a <*> aExpEval s b
+bExpEval s (IsEmpty i) =
+    case get s i of
+      Just (SetType a) -> Just (Utils.isEmpty a)
+      Just (ArrayType a) -> Just (Utils.isEmpty a)
+      Just (StackType a) -> Just (Utils.isEmpty a)
+      Just _ -> error "Cannot apply function to variable"
+      Nothing -> Nothing
 
 -- ARRAY EVAL
 arrayExpEval :: State -> ArrayExp -> Maybe (Array Int)
