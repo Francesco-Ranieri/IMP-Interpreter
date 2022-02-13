@@ -1,0 +1,66 @@
+    program ::= <command> | <command> <program>
+    
+    command ::= <variableDeclaration>
+     | <skip>
+     | <assignment>
+     | <ifThenElse>
+     | <while>
+     | <forParser>
+     | <commentParser>
+     
+    variableDeclaration ::= <AExpDeclaration>
+     | <BExpDeclaration>
+     | <ArrayDeclaration>
+     | <ArrayFullDeclaration>
+     | <SetDeclaration>
+     | <SetFullDeclaration>
+     | <StackDeclaration>
+
+     
+    assignment ::= <AExpAssignment>
+     | <BExpAssignment>
+     | <ArrayAssignmentSingleValue>
+     | <ArrayAssignmentValues>
+     | <ArrayAssignmentValues>
+     | <SetAssignmentSingleValue>
+     | <SetAssignmentValues>
+     | <StackPushValue>
+     | <StackPopValue>
+     
+    AExpDeclaration ::= "int" <identifier> "=" <aexp> ";"
+    BExpDeclaration ::= "bool" <identifier> "<-" <bexp> ";"
+    ArrayDeclaration ::= "array" <identifier> "[" <aexp> "]" ";"
+    ArrayFullDeclaration ::= "array" <identifier> "[" <arrayexp> "]" ";"
+    SetDeclaration ::= "set" <identifier> "{" "}" ";"
+    SetFullDeclaration ::= "set" <identifier> "{" <setexp> "}" ";"
+    StackDeclaration ::= "stack" <identifier> ";"
+        
+    AExpAssignment ::= <identifier> "=" <aexp> ";"
+    BExpAssignment ::= <identifier> "<-" <bexp> ";"
+    
+    ArrayAssignmentSingleValue ::= <identifier> "[" <aexp> "]" ":=" <aexp> ";"
+    ArrayAssignmentValues ::= <identifier> ":=" "[" <aexp> ["," <aexp>]* "]" ";"
+     | <identifier> ":=" <identifier> ";"
+     
+    SetAssignmentSingleValue ::= <identifier> "add" <aexp> ";"
+    SetAssignmentValues ::= <identifier> ":=" "{" <aexp> ["," <aexp>]* "}" ";"
+     | <identifier> ":=" "(set)" <identifier> ";"
+     
+    StackPushValue ::= <identifier> "push" <aexp> ";"
+    StackPushValue ::= <identifier> "pop" ";"
+     
+    ifThenElse ::= "if" "(" <bexp> ")" "{" <program> "}"
+     | "if" "(" <bexp> ")" "{" <program> "}" "else" <program> "}"
+     
+    while ::= "while" "(" <bexp> ")" "{" <program> "}"
+    
+    for ::= "for" "(" <variableDeclaration> ";" <bexp> ";" <identifier> "++"  ")" "{" <program> "}"
+     | "for" "(" <variableDeclaration> ";" <bexp> ";" <identifier> "++"  ")" "{" <program> "}"
+    skip ::= "skip" ";"
+    
+    comment ::= "{-" <comment> "-}"
+    
+    aexp ::= <aterm> ["+" <aterm>]*
+     | <aterm> ["-" <aterm>]*
+     
+    aterm ::= <afact> ["*" <afact>]*

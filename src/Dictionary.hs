@@ -38,6 +38,7 @@ insert (Dictionary ((h, u) : ps)) k v =
     (Dictionary ds) = insert (Dictionary ps) k v
 
 
+
 -- Delete from dictionary
 delete :: (Eq k) => Dictionary k v -> k -> Maybe [(k,v)]
 delete (Dictionary []) _ = Nothing
@@ -45,3 +46,5 @@ delete (Dictionary ((h, v) : ps)) k =
   if k == h
     then return ps
     else delete (Dictionary ps) k
+
+

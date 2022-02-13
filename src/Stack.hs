@@ -14,3 +14,4 @@ pushValue stack elem = [elem] ++ stack
 popValue :: Stack Int -> Stack Int
 popValue [] = []
 popValue (s:ss) = ss
+

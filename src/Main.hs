@@ -69,7 +69,7 @@ parserInput input = do
 
                   --
                   putStrLn ""
-                  putStrLn " -- INPUT NOTPARSED -- "
+                  putStrLn " -- INPUT NOT PARSED -- "
                   putStrLn ""
                   let notParsed = snd inputParsed
                   mapM_ print notParsed

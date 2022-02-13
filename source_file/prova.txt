@@ -1,0 +1,11 @@
+int a1 = 10;
+int a2 = 6;
+int somma = 0;
+
+if(a1>0){
+    somma = a1;
+    while (a2>0){
+        somma = somma + 1;
+        a2 = a2 - 1;
+    }
+}

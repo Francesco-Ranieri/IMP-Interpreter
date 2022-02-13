@@ -27,3 +27,5 @@ isEmpty struct = False
 len :: [Int] -> Int
 len [] = 0
 len struct = length struct
+
+
